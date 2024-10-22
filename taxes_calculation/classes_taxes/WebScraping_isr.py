@@ -6,6 +6,7 @@ from the weekly and monthly ISR table, process the data and make use of it...
 import requests
 import os
 import csv
+from datetime import datetime
 from bs4 import BeautifulSoup
 from pathlib import Path
 from taxes_calculation.utils_taxes.csvFileName import csvFileName
@@ -31,9 +32,13 @@ class IsrScraping:
                 os.makedirs(self.base_dir, exist_ok=True)
 
     """
+    this method read the data from the csv files and
+    """
+
+    """
     this method helps me to process the data in the tables found after the h3 tags...
     """
-    def _process_table_and_save_csv(self, table, text):
+    def process_table_and_save_csv(self, table, text):
         # process the name of the csv file...
         file_name_csv = csvFileName(text)
 
@@ -62,7 +67,7 @@ class IsrScraping:
     """
     this method helps me to make the scraping of the web provided...
     """
-    def _scraping(self):
+    def scraping(self):
         # make the requests...
         response = requests.get(self.url)
 
@@ -86,10 +91,42 @@ class IsrScraping:
                     if table:
                         print(f"Found a table under <h3> with text: {h3.text.strip()}")
                         # process the table data...
-                        self._process_table_and_save_csv(table, h3.text.strip())
+                        self.process_table_and_save_csv(table, h3.text.strip())
                     else:
                         print(f"No table found under <h3> with text: {h3.text.strip()}")
             else:
                 print("No matching h3 elements found.")
         else:
             print(f"Failed to retrieve the webpages. Status code: {response.status_code}")
+
+    """
+    this method is the main method of this class, is where all the process is executed and web
+    scraping is performed under a series of conditions...
+
+    2 things must be verified in order to carry out the process, if the csv with the weekly, monthly
+    and annual information tables exists for the calculation of isr...
+    """
+    def getWebScraping(self):
+        # List of the days of the week... (work week)
+        days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+
+        # address to the csv folder...
+        csv_folder_path = Path(self.base_dir)
+
+        # obtain the current date...
+        current_date = datetime.today()
+        day_of_month = current_date.day
+        day_of_week = current_date.strftime('%A')
+
+        if len(os.listdir(csv_folder_path)) == 0:
+            self.scraping() # do the process if the directory has not files inside yet...
+            return "Created from 0"
+        elif day_of_week in days_of_week and (day_of_month >= 5 and day_of_month < 9):
+            # if the day of the week falls within the work week, and it is
+            # greater than or equal to the fith day of the month, do the following
+            # process
+            self.scraping() # do the process...
+            return "Csv created"
+        else:
+            # and finaly return to indicate date the data is alread update or exists...
+            return "Everything already exist"
