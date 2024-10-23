@@ -6,6 +6,7 @@ from the weekly and monthly ISR table, process the data and make use of it...
 import requests
 import os
 import csv
+import re
 from datetime import datetime
 from bs4 import BeautifulSoup
 from pathlib import Path
@@ -32,13 +33,62 @@ class IsrScraping:
                 os.makedirs(self.base_dir, exist_ok=True)
 
     """
-    this method read the data from the csv files and
+    This method helps with the  cleaning of the tables, they must be cleaned of
+    unwanted signs, commas must be removed and the word "en adelante" must be replace...
     """
+    def cleaning_tables(self):
+        # function that lists all the files in the csv folder...
+        def listed_csv_files(folder):
+            csv_files = []
+            # check if the folder exists...
+            if not os.path.exists(folder):
+                return csv_files # an empty lists is returned if the folder does not exists...
+            # iterated al the files in the csv folder...
+            for file in os.listdir(folder):
+                if file.endswith(".csv"):
+                    csv_files.append(os.path.join(folder, file))
+            return csv_files
+
+        # function to clean each cell in the csv row
+        def clean_cell_data(data):
+            # replace commas
+            data = data.replace(',', '')
+            # use ragex to remove everything except digits, dots, hyphen, and the word "En Adelante"
+            cleaned_data = re.sub(r'[^\d.-]', '0.00', data)
+            # check for the phrase "end adelante" and keep it if present
+            if "En Adelante" in data.lower():
+                return "0.00"
+            return cleaned_data
+        # list all CSV files in the folder...
+        csv_files = listed_csv_files(self.base_dir)
+
+        # read, clean, and save each CSV file
+        for csv_file_path in csv_files:
+            cleaned_rows = []
+
+            # Open the existing CSV file for reading...
+            with open(csv_file_path, mode='r', newline='', encoding='utf-8') as csv_file:
+                csv_reader = csv.reader(csv_file)
+
+                # process each row in the csv...
+                for index, row in enumerate(csv_reader, start=1):
+                    if index > 2:
+                        # clean each cell in the row...
+                        cleaned_row = [clean_cell_data(cell) for cell in row]
+                        cleaned_rows.append(cleaned_row)
+                    else:
+                        cleaned_rows.append([cell for cell in row])
+            # save the cleaned data back to the CSV file...
+            with open(csv_file_path, mode='w', newline='', encoding='utf-8') as cleaned_csv_file:
+                csv_writer = csv.writer(cleaned_csv_file)
+                csv_writer.writerows(cleaned_rows)
+
+            print(f"Cleaned data save to {cleaned_csv_file}")
 
     """
     this method helps me to process the data in the tables found after the h3 tags...
     """
-    def process_table_and_save_csv(self, table, text):
+    def _process_table_and_save_csv(self, table, text):
         # process the name of the csv file...
         file_name_csv = csvFileName(text)
 
@@ -67,7 +117,7 @@ class IsrScraping:
     """
     this method helps me to make the scraping of the web provided...
     """
-    def scraping(self):
+    def _scraping(self):
         # make the requests...
         response = requests.get(self.url)
 
@@ -91,7 +141,7 @@ class IsrScraping:
                     if table:
                         print(f"Found a table under <h3> with text: {h3.text.strip()}")
                         # process the table data...
-                        self.process_table_and_save_csv(table, h3.text.strip())
+                        self._process_table_and_save_csv(table, h3.text.strip())
                     else:
                         print(f"No table found under <h3> with text: {h3.text.strip()}")
             else:
@@ -119,13 +169,13 @@ class IsrScraping:
         day_of_week = current_date.strftime('%A')
 
         if len(os.listdir(csv_folder_path)) == 0:
-            self.scraping() # do the process if the directory has not files inside yet...
+            self._scraping() # do the process if the directory has not files inside yet...
             return "Created from 0"
         elif day_of_week in days_of_week and (day_of_month >= 5 and day_of_month < 9):
             # if the day of the week falls within the work week, and it is
             # greater than or equal to the fith day of the month, do the following
             # process
-            self.scraping() # do the process...
+            self._scraping() # do the process...
             return "Csv created"
         else:
             # and finaly return to indicate date the data is alread update or exists...
