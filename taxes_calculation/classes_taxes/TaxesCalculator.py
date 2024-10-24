@@ -98,12 +98,10 @@ class TaxesCalculator:
 
             if "anual" in csv_file.lower():
                 self.isr_data_annul = matriz
-            elif "semanal" in csv_file.lower():
+            elif "semanales" in csv_file.lower():
                 self.isr_data_weekly = matriz
-            elif "mensual" in csv_file.lower():
+            elif "mensuales" in csv_file.lower():
                 self.isr_data_monthly = matriz
-
-        print("Datos ISR anual:", self.isr_data_weekly)
 
     """
     This method helps with the calculation of the iva that I probably have to pay
@@ -156,9 +154,9 @@ class TaxesCalculator:
         row = searchRange(matriz, amount)
 
         # calculate ISR...
-        surplus = amount - row[0]
-        isr_surplus = surplus * row[3]
-        isr_total = row[2] + isr_surplus
+        surplus = amount - float(row[0])
+        isr_surplus = surplus * float(row[3]) / 100
+        isr_total = float(row[2]) + isr_surplus
 
         # return the calculated ISR...
-        return isr_total
+        return round(isr_total, 2)
