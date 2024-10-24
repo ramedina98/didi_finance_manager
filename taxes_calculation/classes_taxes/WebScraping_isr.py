@@ -56,7 +56,7 @@ class IsrScraping:
             # use ragex to remove everything except digits, dots, hyphen, and the word "En Adelante"
             cleaned_data = re.sub(r'[^\d.-]', '0.00', data)
             # check for the phrase "end adelante" and keep it if present
-            if "En Adelante" in data.lower():
+            if "en adelante" in data.lower():
                 return "0.00"
             return cleaned_data
         # list all CSV files in the folder...
